@@ -1,0 +1,101 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # リリース作成とアセットアップロードのために必要
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x # 必要に応じて Deno のバージョンを指定
+
+      - name: Get current date for tag
+        id: date
+        run: echo "TAG=$(date +'%Y.%m.%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG }}
+          release_name: Release ${{ env.TAG }}
+          draft: false
+          prerelease: false
+
+      - name: Build for Linux
+        run: deno compile --allow-all --output clipboard-mcp-linux --target x86_64-unknown-linux-gnu main.ts
+
+      - name: Upload Linux artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./clipboard-mcp-linux
+          asset_name: clipboard-mcp-linux
+          asset_content_type: application/octet-stream
+
+      - name: Build for Linux (ARM64)
+        run: deno compile --allow-all --output clipboard-mcp-linux-arm64 --target aarch64-unknown-linux-gnu main.ts
+
+      - name: Upload Linux (ARM64) artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./clipboard-mcp-linux-arm64
+          asset_name: clipboard-mcp-linux-arm64
+          asset_content_type: application/octet-stream
+
+      - name: Build for macOS (x86_64)
+        run: deno compile --allow-all --output clipboard-mcp-macos-x86_64 --target x86_64-apple-darwin main.ts
+
+      - name: Upload macOS (x86_64) artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./clipboard-mcp-macos-x86_64
+          asset_name: clipboard-mcp-macos-x86_64
+          asset_content_type: application/octet-stream
+
+      - name: Build for macOS (ARM64)
+        run: deno compile --allow-all --output clipboard-mcp-macos-aarch64 --target aarch64-apple-darwin main.ts
+
+      - name: Upload macOS (ARM64) artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./clipboard-mcp-macos-aarch64
+          asset_name: clipboard-mcp-macos-aarch64
+          asset_content_type: application/octet-stream
+
+      - name: Build for Windows
+        run: deno compile --allow-all --output clipboard-mcp-windows.exe --target x86_64-pc-windows-msvc main.ts
+
+      - name: Upload Windows artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./clipboard-mcp-windows.exe
+          asset_name: clipboard-mcp-windows.exe
+          asset_content_type: application/octet-stream
